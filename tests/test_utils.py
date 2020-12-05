@@ -995,15 +995,9 @@ def test_convert_params_with_dataclass_obj(input_: Any, expected: Any, convert: 
     # This behavior is unique to instantiated objects that are dataclasses.
 
     cfg = OmegaConf.create(input_)
-    kwargs = {"a": {"_convert_": convert}}
-    ret = utils.instantiate(cfg.obj, **kwargs)
-
+    ret = utils.instantiate(cfg.obj, _convert_=convert)
     assert ret.a == expected
-    # as close as it gets for dataclasses:
-    # Object is a DictConfig and the underlying type is the expected type.
-    assert isinstance(ret.a, DictConfig) and OmegaConf.get_type(ret.a) == type(expected)
-    # Since these are nested in , they are not getting converted. not the greatest behavior.
-    # Can potentially be solved if this is causing issues.
+    assert isinstance(ret.a, type(expected)) and not isinstance(ret.a, DictConfig)
     assert isinstance(ret.a.a, DictConfig)
     assert isinstance(ret.a.b, ListConfig)
 
@@ -1102,11 +1096,11 @@ def test_dict_with_structured_config() -> None:
 
     obj = utils.instantiate(config=cfg, _convert_="partial")
     assert isinstance(obj.d, dict)
-    assert OmegaConf.get_type(obj.d["007"]) == User
+    assert isinstance(obj.d["007"], User)
 
     obj = utils.instantiate(config=cfg, _convert_="all")
     assert isinstance(obj.d, dict)
-    assert isinstance(obj.d["007"], dict)
+    assert isinstance(obj.d["007"], User)
 
 
 def test_list_with_structured_config() -> None:
@@ -1124,11 +1118,12 @@ def test_list_with_structured_config() -> None:
 
     obj = utils.instantiate(config=cfg, _convert_="partial")
     assert isinstance(obj.d, list)
+    assert isinstance(obj.d[0], DictConfig)
     assert OmegaConf.get_type(obj.d[0]) == User
 
     obj = utils.instantiate(config=cfg, _convert_="all")
     assert isinstance(obj.d, list)
-    assert isinstance(obj.d[0], dict)
+    assert isinstance(obj.d[0], User)
 
 
 def test_list_as_none() -> None:

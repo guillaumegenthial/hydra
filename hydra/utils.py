@@ -56,7 +56,6 @@ def instantiate(config: Any, *args: Any, **kwargs: Any) -> Any:
     :return: if _target_ is a class name: the instantiated object
              if _target_ is a callable: the return value of the call
     """
-
     if OmegaConf.is_none(config):
         return None
 
@@ -91,7 +90,6 @@ def instantiate(config: Any, *args: Any, **kwargs: Any) -> Any:
     assert OmegaConf.is_config(config)
     OmegaConf.set_readonly(config, False)
     OmegaConf.set_struct(config, False)
-
     target = _get_target_type(config, kwargs)
     try:
         config._set_flag("allow_objects", True)
@@ -101,14 +99,18 @@ def instantiate(config: Any, *args: Any, **kwargs: Any) -> Any:
             final_kwargs = OmegaConf.to_container(
                 final_kwargs, resolve=True, exclude_structured_configs=True
             )
-            return target(*args, **final_kwargs)
         elif convert == ConvertMode.ALL:
             final_kwargs = OmegaConf.to_container(final_kwargs, resolve=True)
-            return target(*args, **final_kwargs)
         elif convert == ConvertMode.NONE:
-            return target(*args, **final_kwargs)
+            pass
         else:
             assert False
+        obj = target(*args, **final_kwargs)
+        try:
+            obj._IS_STRUCTURED_CONFIG = False
+        except Exception:
+            pass
+        return obj
     except Exception as e:
         # preserve the original exception backtrace
         raise type(e)(
